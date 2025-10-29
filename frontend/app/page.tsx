@@ -32,19 +32,13 @@ interface Guardia {
   id: string;
   tecnico_id: string;
   fecha_inicio: string;
-  fecha_fin: string;
-  tecnicos: {
-    nombre: string;
-  };
 }
 
 interface Descanso {
   id: string;
   tecnico_id: string;
   fecha: string;
-  tecnicos: {
-    nombre: string;
-  };
+  procesado?: boolean;
 }
 
 export default function Dashboard() {
@@ -68,6 +62,12 @@ export default function Dashboard() {
   const today = new Date();
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
+
+  // Helper function para obtener nombre del técnico por ID
+  const getTecnicoName = (tecnicoId: string) => {
+    const tecnico = tecnicos.find(t => t.id === tecnicoId);
+    return tecnico?.nombre || 'Desconocido';
+  };
 
   const loadData = async () => {
     try {
@@ -607,7 +607,7 @@ export default function Dashboard() {
                               >
                                 <div className="flex items-center gap-1">
                                   <Shield className="w-3 h-3" />
-                                  <span>{guardia.tecnicos.nombre.split(' ')[0]}</span>
+                                  <span>{getTecnicoName(guardia.tecnico_id).split(' ')[0]}</span>
                                 </div>
                                 <motion.button
                                   whileHover={{ scale: 1.1 }}
@@ -632,7 +632,7 @@ export default function Dashboard() {
                               >
                                 <div className="flex items-center gap-1">
                                   <Coffee className="w-3 h-3" />
-                                  <span>{descanso.tecnicos.nombre.split(' ')[0]}</span>
+                                  <span>{getTecnicoName(descanso.tecnico_id).split(' ')[0]}</span>
                                 </div>
                                 <motion.button
                                   whileHover={{ scale: 1.1 }}

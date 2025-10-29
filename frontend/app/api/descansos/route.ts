@@ -3,13 +3,14 @@ import { supabase } from '../../../lib/supabase';
 
 export async function GET() {
   try {
+    console.log('[DESCANSOS API] Iniciando consulta...');
+    
     const { data, error } = await supabase
       .from('descansos')
-      .select(`
-        *,
-        tecnico:tecnicos(nombre)
-      `)
+      .select('*')
       .order('fecha', { ascending: false });
+      
+    console.log('[DESCANSOS API] Resultado:', { data: data?.length, error });
 
     if (error) {
       throw error;
