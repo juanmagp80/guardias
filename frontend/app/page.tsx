@@ -79,15 +79,49 @@ export default function Dashboard() {
         fetch(`${apiUrl}/descansos`)
       ]);
 
+      // Verificar respuestas HTTP
+      if (!tecnicosRes.ok) {
+        console.error('Error en tecnicos API:', tecnicosRes.status, tecnicosRes.statusText);
+      }
+      if (!guardiasRes.ok) {
+        console.error('Error en guardias API:', guardiasRes.status, guardiasRes.statusText);
+      }
+      if (!descansosRes.ok) {
+        console.error('Error en descansos API:', descansosRes.status, descansosRes.statusText);
+      }
+
       const [tecnicosData, guardiasData, descansosData] = await Promise.all([
         tecnicosRes.json(),
         guardiasRes.json(),
         descansosRes.json()
       ]);
 
-      if (tecnicosData.success) setTecnicos(tecnicosData.data);
-      if (guardiasData.success) setGuardias(guardiasData.data);
-      if (descansosData.success) setDescansos(descansosData.data);
+      console.log('API Responses:', { tecnicosData, guardiasData, descansosData });
+
+      // Los datos pueden venir directamente (array) o en formato { success: true, data: [] }
+      if (Array.isArray(tecnicosData)) {
+        setTecnicos(tecnicosData);
+      } else if (tecnicosData.success) {
+        setTecnicos(tecnicosData.data);
+      } else {
+        console.error('Error en tecnicos:', tecnicosData);
+      }
+
+      if (Array.isArray(guardiasData)) {
+        setGuardias(guardiasData);
+      } else if (guardiasData.success) {
+        setGuardias(guardiasData.data);
+      } else {
+        console.error('Error en guardias:', guardiasData);
+      }
+
+      if (Array.isArray(descansosData)) {
+        setDescansos(descansosData);
+      } else if (descansosData.success) {
+        setDescansos(descansosData.data);
+      } else {
+        console.error('Error en descansos:', descansosData);
+      }
 
       setLoading(false);
     } catch (error) {
