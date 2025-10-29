@@ -1,0 +1,252 @@
+#!/usr/bin/env node
+
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { 
+  CallToolRequestSchema,
+  ListToolsRequestSchema
+} from '@modelcontextprotocol/sdk/types.js';
+import dotenv from 'dotenv';
+import { GoogleCalendarService } from './services/googleCalendarService.js';
+import { SupabaseService } from './services/supabaseService.js';
+import { GuardiasService } from './services/guardiasService.js';
+
+// Cargar variables de entorno
+dotenv.config();
+
+class GuardiasMCPServer {
+  constructor() {
+    this.server = new Server(
+      {
+        name: 'guardias-scheduler-mcp',
+        version: '1.0.1',
+      },
+      {
+        capabilities: {
+          tools: {},
+        },
+      }
+    );
+
+    this.googleService = new GoogleCalendarService();
+    this.supabaseService = new SupabaseService();
+    this.guardiasService = new GuardiasService(this.googleService, this.supabaseService);
+
+    this.setupToolHandlers();
+  }
+
+  setupToolHandlers() {
+    // Listar herramientas disponibles
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return {
+        tools: [
+          {
+            name: 'asignar_guardia',
+            description: 'Asigna una semana de guardia a un técnico y suma un día de descanso pendiente',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                tecnico: {
+                  type: 'string',
+                  description: 'Nombre del técnico'
+                },
+                fecha_inicio: {
+                  type: 'string',
+                  format: 'date',
+                  description: 'Fecha de inicio de la guardia (YYYY-MM-DD)'
+                },
+                fecha_fin: {
+                  type: 'string', 
+                  format: 'date',
+                  description: 'Fecha de fin de la guardia (YYYY-MM-DD)'
+                }
+              },
+              required: ['tecnico', 'fecha_inicio', 'fecha_fin']
+            }
+          },
+          {
+            name: 'asignar_descanso',
+            description: 'Asigna un día de descanso a un técnico y resta uno de los pendientes',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                tecnico: {
+                  type: 'string',
+                  description: 'Nombre del técnico'
+                },
+                fecha: {
+                  type: 'string',
+                  format: 'date',
+                  description: 'Fecha del día de descanso (YYYY-MM-DD)'
+                }
+              },
+              required: ['tecnico', 'fecha']
+            }
+          },
+          {
+            name: 'listar_pendientes',
+            description: 'Devuelve técnicos con días de descanso pendientes',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false
+            }
+          },
+          {
+            name: 'listar_tecnicos',
+            description: 'Lista todos los técnicos registrados en el sistema',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false
+            }
+          },
+          {
+            name: 'crear_tecnico',
+            description: 'Crea un nuevo técnico en el sistema',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                nombre: {
+                  type: 'string',
+                  description: 'Nombre completo del técnico'
+                },
+                email: {
+                  type: 'string',
+                  format: 'email',
+                  description: 'Email del técnico'
+                },
+                dias_pendientes: {
+                  type: 'number',
+                  description: 'Días de descanso pendientes iniciales',
+                  default: 0
+                }
+              },
+              required: ['nombre', 'email']
+            }
+          }
+        ]
+      };
+    });
+
+    // Manejar llamadas a herramientas
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args } = request.params;
+
+      try {
+        switch (name) {
+          case 'asignar_guardia':
+            return await this.handleAsignarGuardia(args);
+          case 'asignar_descanso':
+            return await this.handleAsignarDescanso(args);
+          case 'listar_pendientes':
+            return await this.handleListarPendientes();
+          case 'listar_tecnicos':
+            return await this.handleListarTecnicos();
+          case 'crear_tecnico':
+            return await this.handleCrearTecnico(args);
+          default:
+            throw new Error(`Herramienta desconocida: ${name}`);
+        }
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error al ejecutar ${name}: ${error.message}`
+            }
+          ],
+          isError: true
+        };
+      }
+    });
+  }
+
+  async handleAsignarGuardia(args) {
+    const { tecnico, fecha_inicio, fecha_fin } = args;
+    
+    const resultado = await this.guardiasService.asignarGuardia(
+      tecnico,
+      new Date(fecha_inicio),
+      new Date(fecha_fin)
+    );
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Guardia asignada exitosamente:\n${JSON.stringify(resultado, null, 2)}`
+        }
+      ]
+    };
+  }
+
+  async handleAsignarDescanso(args) {
+    const { tecnico, fecha } = args;
+    
+    const resultado = await this.guardiasService.asignarDescanso(
+      tecnico,
+      new Date(fecha)
+    );
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Descanso asignado exitosamente:\n${JSON.stringify(resultado, null, 2)}`
+        }
+      ]
+    };
+  }
+
+  async handleListarPendientes() {
+    const pendientes = await this.guardiasService.listarPendientes();
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Técnicos con días pendientes:\n${JSON.stringify(pendientes, null, 2)}`
+        }
+      ]
+    };
+  }
+
+  async handleListarTecnicos() {
+    const tecnicos = await this.supabaseService.obtenerTecnicos();
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Lista de técnicos:\n${JSON.stringify(tecnicos, null, 2)}`
+        }
+      ]
+    };
+  }
+
+  async handleCrearTecnico(args) {
+    const { nombre, email, dias_pendientes = 0 } = args;
+    
+    const tecnico = await this.supabaseService.crearTecnico(nombre, email, dias_pendientes);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Técnico creado exitosamente:\n${JSON.stringify(tecnico, null, 2)}`
+        }
+      ]
+    };
+  }
+
+  async run() {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+    console.error('🚀 MCP Server Guardias Sevilla ejecutándose...');
+  }
+}
+
+// Ejecutar el servidor
+const server = new GuardiasMCPServer();
+server.run().catch(console.error);

@@ -1,0 +1,44 @@
+{
+    "version": "1.0.1",
+    "name": "guardias_scheduler_mcp",
+    "description": "Agente que gestiona guardias y descansos en Google Calendar, con persistencia en Supabase.",
+    "tools": {
+        "google_calendar": {
+            "scopes": [
+                "https://www.googleapis.com/auth/calendar"
+            ],
+            "description": "Crea, modifica o elimina eventos de guardias y descansos en Google Calendar."
+        },
+        "supabase_db": {
+            "tables": [
+                "tecnicos",
+                "guardias",
+                "descansos"
+            ],
+            "description": "Base de datos para guardar técnicos, guardias y días pendientes."
+        }
+    },
+    "commands": [
+        {
+            "name": "asignar_guardia",
+            "description": "Asigna una semana de guardia a un técnico y suma un día de descanso pendiente.",
+            "parameters": {
+                "tecnico": "string",
+                "fecha_inicio": "date",
+                "fecha_fin": "date"
+            }
+        },
+        {
+            "name": "asignar_descanso",
+            "description": "Asigna un día de descanso a un técnico y resta uno de los pendientes.",
+            "parameters": {
+                "tecnico": "string",
+                "fecha": "date"
+            }
+        },
+        {
+            "name": "listar_pendientes",
+            "description": "Devuelve técnicos con días de descanso pendientes."
+        }
+    ]
+}

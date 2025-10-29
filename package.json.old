@@ -1,0 +1,32 @@
+{
+  "name": "guardias-scheduler-mcp",
+  "version": "1.0.1",
+  "description": "MCP Server para gestión de guardias y descansos con Google Calendar y Supabase",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mcp",
+    "google-calendar",
+    "supabase",
+    "guardias",
+    "descansos"
+  ],
+  "author": "Juanma",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1",
+    "googleapis": "^128.0.0",
+    "node-fetch": "^3.3.2",
+    "openai": "^6.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0"
+  }
+}
