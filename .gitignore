@@ -47,6 +47,13 @@ jspm_packages/
 .env.test.local
 .env.production.local
 
+# Google OAuth token files
+get-tokens-*.js
+*-tokens.js
+*-credentials.js
+tokens.json
+credentials.json
+
 # Next.js build output
 .next/
 out/
