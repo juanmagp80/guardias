@@ -72,12 +72,20 @@ export default function Dashboard() {
   const loadData = async () => {
     try {
       const apiUrl = getApiUrl();
+      console.log('[LOAD DATA] API URL:', apiUrl);
       
+      console.log('[LOAD DATA] Iniciando peticiones...');
       const [tecnicosRes, guardiasRes, descansosRes] = await Promise.all([
         fetch(`${apiUrl}/tecnicos`),
         fetch(`${apiUrl}/guardias`),
         fetch(`${apiUrl}/descansos`)
       ]);
+      
+      console.log('[LOAD DATA] Respuestas recibidas:', {
+        tecnicos: tecnicosRes.status,
+        guardias: guardiasRes.status,
+        descansos: descansosRes.status
+      });
 
       // Verificar respuestas HTTP
       if (!tecnicosRes.ok) {
