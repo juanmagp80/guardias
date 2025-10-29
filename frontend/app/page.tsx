@@ -51,12 +51,13 @@ export default function Dashboard() {
 
   // Helper para obtener la URL base de la API
   const getApiUrl = () => {
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}/api`;
+    // En desarrollo, usar el backend Express local
+    if (process.env.NODE_ENV === 'development') {
+      return 'http://localhost:3001/api';
     }
-    return process.env.NODE_ENV === 'development' 
-      ? 'http://localhost:3001/api' 
-      : '/api';
+    // En producción, usar el backend Express desplegado
+    // TODO: Cambiar por la URL del backend desplegado
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
   };
 
   const today = new Date();
@@ -70,70 +71,97 @@ export default function Dashboard() {
   };
 
   const loadData = async () => {
+    console.log('[LOAD DATA] Iniciando carga de datos...');
+    setLoading(true);
+    
     try {
       const apiUrl = getApiUrl();
       console.log('[LOAD DATA] API URL:', apiUrl);
       
-      console.log('[LOAD DATA] Iniciando peticiones...');
-      const [tecnicosRes, guardiasRes, descansosRes] = await Promise.all([
-        fetch(`${apiUrl}/tecnicos`),
-        fetch(`${apiUrl}/guardias`),
-        fetch(`${apiUrl}/descansos`)
-      ]);
-      
-      console.log('[LOAD DATA] Respuestas recibidas:', {
-        tecnicos: tecnicosRes.status,
-        guardias: guardiasRes.status,
-        descansos: descansosRes.status
-      });
-
-      // Verificar respuestas HTTP
-      if (!tecnicosRes.ok) {
-        console.error('Error en tecnicos API:', tecnicosRes.status, tecnicosRes.statusText);
-      }
-      if (!guardiasRes.ok) {
-        console.error('Error en guardias API:', guardiasRes.status, guardiasRes.statusText);
-      }
-      if (!descansosRes.ok) {
-        console.error('Error en descansos API:', descansosRes.status, descansosRes.statusText);
-      }
-
-      const [tecnicosData, guardiasData, descansosData] = await Promise.all([
-        tecnicosRes.json(),
-        guardiasRes.json(),
-        descansosRes.json()
-      ]);
-
-      console.log('API Responses:', { tecnicosData, guardiasData, descansosData });
-
-      // Los datos pueden venir directamente (array) o en formato { success: true, data: [] }
-      if (Array.isArray(tecnicosData)) {
-        setTecnicos(tecnicosData);
-      } else if (tecnicosData.success) {
-        setTecnicos(tecnicosData.data);
-      } else {
-        console.error('Error en tecnicos:', tecnicosData);
+      // Cargar técnicos (sabemos que funciona)
+      try {
+        console.log('[LOAD DATA] Cargando técnicos...');
+        const tecnicosRes = await fetch(`${apiUrl}/tecnicos`);
+        if (tecnicosRes.ok) {
+          const tecnicosData = await tecnicosRes.json();
+          console.log('[LOAD DATA] Técnicos cargados:', tecnicosData);
+          
+          if (Array.isArray(tecnicosData)) {
+            setTecnicos(tecnicosData);
+          } else if (tecnicosData.success && tecnicosData.data) {
+            setTecnicos(tecnicosData.data);
+          } else {
+            console.warn('[LOAD DATA] Formato inesperado de técnicos:', tecnicosData);
+            setTecnicos([]);
+          }
+        } else {
+          console.error('[LOAD DATA] Error cargando técnicos:', tecnicosRes.status);
+          setTecnicos([]);
+        }
+      } catch (error) {
+        console.error('[LOAD DATA] Excepción cargando técnicos:', error);
+        setTecnicos([]);
       }
 
-      if (Array.isArray(guardiasData)) {
-        setGuardias(guardiasData);
-      } else if (guardiasData.success) {
-        setGuardias(guardiasData.data);
-      } else {
-        console.error('Error en guardias:', guardiasData);
+      // Intentar cargar guardias (con fallback)
+      try {
+        console.log('[LOAD DATA] Cargando guardias...');
+        const guardiasRes = await fetch(`${apiUrl}/guardias`);
+        if (guardiasRes.ok) {
+          const guardiasData = await guardiasRes.json();
+          console.log('[LOAD DATA] Guardias cargadas:', guardiasData);
+          
+          if (Array.isArray(guardiasData)) {
+            setGuardias(guardiasData);
+          } else if (guardiasData.success && guardiasData.data) {
+            setGuardias(guardiasData.data);
+          } else {
+            console.warn('[LOAD DATA] Guardias: usando array vacío');
+            setGuardias([]);
+          }
+        } else {
+          console.warn('[LOAD DATA] Guardias API error, usando array vacío');
+          setGuardias([]);
+        }
+      } catch (error) {
+        console.warn('[LOAD DATA] Excepción guardias, usando array vacío:', error);
+        setGuardias([]);
       }
 
-      if (Array.isArray(descansosData)) {
-        setDescansos(descansosData);
-      } else if (descansosData.success) {
-        setDescansos(descansosData.data);
-      } else {
-        console.error('Error en descansos:', descansosData);
+      // Intentar cargar descansos (con fallback)
+      try {
+        console.log('[LOAD DATA] Cargando descansos...');
+        const descansosRes = await fetch(`${apiUrl}/descansos`);
+        if (descansosRes.ok) {
+          const descansosData = await descansosRes.json();
+          console.log('[LOAD DATA] Descansos cargados:', descansosData);
+          
+          if (Array.isArray(descansosData)) {
+            setDescansos(descansosData);
+          } else if (descansosData.success && descansosData.data) {
+            setDescansos(descansosData.data);
+          } else {
+            console.warn('[LOAD DATA] Descansos: usando array vacío');
+            setDescansos([]);
+          }
+        } else {
+          console.warn('[LOAD DATA] Descansos API error, usando array vacío');
+          setDescansos([]);
+        }
+      } catch (error) {
+        console.warn('[LOAD DATA] Excepción descansos, usando array vacío:', error);
+        setDescansos([]);
       }
 
+      console.log('[LOAD DATA] Carga completada');
       setLoading(false);
+      
     } catch (error) {
-      console.error('Error cargando datos:', error);
+      console.error('[LOAD DATA] Error general:', error);
+      // Asegurar que al menos tenemos arrays vacíos
+      setTecnicos([]);
+      setGuardias([]);
+      setDescansos([]);
       setLoading(false);
     }
   };
