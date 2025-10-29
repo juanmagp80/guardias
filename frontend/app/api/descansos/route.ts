@@ -15,7 +15,10 @@ export async function GET() {
       throw error;
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      success: true,
+      data: data
+    });
   } catch (error) {
     console.error('Error en API de descansos:', error);
     return NextResponse.json(
@@ -40,7 +43,10 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    return NextResponse.json(data[0]);
+    return NextResponse.json({
+      success: true,
+      data: data[0]
+    });
   } catch (error) {
     console.error('Error creando descanso:', error);
     return NextResponse.json(
